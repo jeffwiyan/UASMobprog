@@ -1,0 +1,50 @@
+name: health_fitness_app
+description: "A new Flutter project."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.3 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Ikon gaya iOS
+  cupertino_icons: ^1.0.8
+
+  # Font modern dari Google
+  google_fonts: ^6.2.1
+
+  # Simpan data login dan onboarding (local storage)
+  shared_preferences: ^2.3.2
+
+  # Grafik progress (pastikan versi ini cocok)
+  fl_chart: ^0.69.0
+
+  # Animasi transisi halaman
+  animations: ^2.0.11
+
+  # Pedometer for automatic step tracking
+  pedometer: ^4.0.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Linter standar Flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/logo.png
+    - assets/images/pushup.png
+    - assets/images/squat.png
+    - assets/images/yoga.png
+    - assets/images/run.png
+    - assets/images/dumbbell.png
+    - assets/images/plank.png
+    - assets/images/situp.png
