@@ -1,168 +1,123 @@
 import 'package:flutter/material.dart';
-import 'package:health_fitness_app/utils/constants.dart';
-import 'package:health_fitness_app/utils/storage_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class ProfilePage extends StatefulWidget {
-  const ProfilePage({super.key});
+class OnboardingPage extends StatefulWidget {
+  const OnboardingPage({super.key});
 
   @override
-  State<ProfilePage> createState() => _ProfilePageState();
+  State<OnboardingPage> createState() => _OnboardingPageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
-  Map<String, dynamic> _userProfile = {};
-  bool _isLoading = true;
+class _OnboardingPageState extends State<OnboardingPage> {
+  final PageController _pageController = PageController();
+  int _currentPage = 0;
+  static const int _pageTransitionDuration = 300;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadUserProfile();
+  List<Widget> _buildPages() {
+    return [
+      _buildPage(
+        icon: Icons.fitness_center,
+        title: 'Track Your Workouts',
+        description: 'Log every workout session and monitor your progress over time.',
+      ),
+      _buildPage(
+        icon: Icons.track_changes,
+        title: 'Monitor Your Activity',
+        description: 'Stay motivated by tracking your steps, distance, and calories burned daily.',
+      ),
+      _buildPage(
+        icon: Icons.bar_chart,
+        title: 'View Your Statistics',
+        description: 'Gain insights into your fitness habits with detailed charts and statistics.',
+      ),
+    ];
   }
 
-  Future<void> _loadUserProfile() async {
-    try {
-      final profile = await StorageHelper.getUserProfile();
-      if (mounted) {
-        setState(() {
-          _userProfile = profile;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppConstants.errorGeneric)),
-        );
-      }
-    }
-  }
-
-  Future<void> _logout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+  Widget _buildPage({required IconData icon, required String title, required String description}) {
+    return Padding(
+      padding: const EdgeInsets.all(24.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 100, color: Theme.of(context).primaryColor),
+          const SizedBox(height: 24),
+          Text(
+            title,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppConstants.errorColor),
-            child: const Text('Logout'),
+          const SizedBox(height: 16),
+          Text(
+            description,
+            style: Theme.of(context).textTheme.bodyLarge,
+            textAlign: TextAlign.center,
           ),
         ],
       ),
     );
+  }
 
-    if (confirmed == true) {
-      try {
-        final success = await StorageHelper.logout();
-        if (success && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text(AppConstants.successLogout)),
-          );
-          Navigator.pushReplacementNamed(context, AppConstants.routeLogin);
-        } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text(AppConstants.errorGeneric)),
+  Widget _buildPageIndicator(int pageCount) {
+    return Row(
+      children: List.generate(pageCount, (index) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: _currentPage == index ? Theme.of(context).primaryColor : Colors.grey,
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildActionButton() {
+    return ElevatedButton(
+      onPressed: () async {
+        if (_currentPage == _buildPages().length - 1) {
+          final SharedPreferences prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('hasOnboarded', true);
+          if (!mounted) return;
+          Navigator.pushReplacementNamed(context, '/login');
+        } else {
+          _pageController.nextPage(
+            duration: const Duration(milliseconds: _pageTransitionDuration),
+            curve: Curves.easeInOut,
           );
         }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text(AppConstants.errorGeneric)),
-          );
-        }
-      }
-    }
+      },
+      child: Text(_currentPage == _buildPages().length - 1 ? 'Start' : 'Next'),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: AppConstants.primaryColor,
-        foregroundColor: Colors.white,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(AppConstants.defaultPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Theme.of(context).colorScheme.secondary,
-                      child: Icon(
-                        Icons.person,
-                        size: 60,
-                        color: Theme.of(context).colorScheme.onSecondary,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: Text(
-                      _userProfile['name'] ?? 'User',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: Text(
-                      _userProfile['email'] ?? '',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Divider(),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Fitness Statistics',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildStatRow(context, 'Height', _userProfile['height'] ?? '175 cm'),
-                  _buildStatRow(context, 'Weight', _userProfile['weight'] ?? '72 kg'),
-                  _buildStatRow(context, 'Calorie Target', '${_userProfile['calorieTarget'] ?? AppConstants.defaultCalorieTarget} kcal'),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: _logout,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppConstants.errorColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: AppConstants.buttonVerticalPadding),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppConstants.defaultBorderRadius),
-                        ),
-                      ),
-                      child: const Text('Logout'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-
-  Widget _buildStatRow(BuildContext context, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      body: Column(
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodyLarge),
-          Text(value, style: Theme.of(context).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (int page) {
+                setState(() {
+                  _currentPage = page;
+                });
+              },
+              children: _buildPages(),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildPageIndicator(_buildPages().length),
+                _buildActionButton(),
+              ],
+            ),
+          ),
         ],
       ),
     );
